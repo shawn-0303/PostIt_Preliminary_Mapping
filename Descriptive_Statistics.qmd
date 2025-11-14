@@ -1,0 +1,97 @@
+---
+title: "Descriptive Statistics"
+format: pdf
+editor: visual
+---
+
+## Load Packages
+
+```{r}
+#| label: load_packages
+#| message: false
+
+library(tidyverse)
+library(forcats)
+library(scales)
+```
+
+## Load Cleaned Opioid Overdose Paramedic Data
+
+```{r}
+#| label: load_cleaned_edited_data
+
+load("/home2/wburr/Shawn_Chris/dat/OpOD_PCCP.rda")
+load("/home2/wburr/Shawn_Chris/shawn_work/OpOD_PCCP_removedmissinggender.rda")
+```
+
+
+## Descriptive Statistics
+
+### Sending Facility / Pick-Up Location
+
+```{r}
+#| label: descriptive_stats_pickup
+
+
+pickup_table <- OpOD_PCCP |> group_by(fct_infreq(PickupLocationDescription)) |> count()
+pickup_table
+
+destination_table <- OpOD_PCCP |> group_by(fct_infreq(Receiving.Facility.Destination)) |> count()
+destination_table
+```
+
+
+### Age
+
+```{r}
+#| label: descriptive_stats_age
+
+OpOD_PCCP |> pull(Age) |> summary()
+```
+
+### Age and Gender
+
+```{r}
+#| label: descriptive_stats_age_gender
+
+OpOD_PCCP_removedmissinggender |>
+  group_by(Gender)|> 
+  summarise(count = n(),
+            mean_age = mean(Age, na.rm = TRUE),
+            median_age = median(Age, na.rm = TRUE),
+            min = min(Age, na.rm = TRUE),
+            max = max(Age, na.rm = TRUE))
+
+```
+
+```{r}
+#| label: descriptive_stats_year
+
+OpOD_PCCP |> 
+  group_by(year(Date.Good)) |>
+  summarize(count = n())
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

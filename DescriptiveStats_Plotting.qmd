@@ -1,0 +1,280 @@
+---
+title: "Descriptive Plots"
+format: pdf
+editor: visual
+---
+
+## Load Packages
+
+```{r}
+#| label: load_packages
+#| message: false
+
+library(tidyverse)
+library(forcats)
+library(scales)
+```
+
+## Load Cleaned Opioid Overdose Paramedic Data
+
+```{r}
+#| label: load_cleaned_data
+
+load("/home2/wburr/Shawn_Chris/dat/OpOD_PCCP.rda")
+```
+
+## Editing the Data
+
+```{r}
+#| label: edit_location_data
+
+OpOD_PCCP$Receiving.Facility.Destination <- sub("^$",
+                                                "Not Specified",
+                                                OpOD_PCCP$Receiving.Facility.Destination)
+
+OpOD_PCCP_removedmissinggender <- OpOD_PCCP[!(OpOD_PCCP$Gender == ""), ]
+
+# Save the edited dataset
+
+save(file = "/home2/wburr/Shawn_Chris/shawn_work/OpOD_PCCP_removedmissinggender.rda", OpOD_PCCP_removedmissinggender)
+```
+
+## Plotting Demographics
+
+### Sending Facility / Pick-Up Locations
+
+```{r}
+#| label: plot_pickup_location
+#| warning: false
+#| message: false
+
+pickup_location_plot <- ggplot(OpOD_PCCP,
+                               aes(x = fct_infreq(PickupLocationDescription),
+                                   y = (..count..)/sum(..count..))) +
+  geom_bar() +
+  geom_text(aes(label = paste0(round((..count..)/sum(..count..) , 3) * 100, "%")),
+            stat = "count",
+            vjust = -0.1,
+            size = 3) +
+  scale_y_continuous(labels = scales::percent_format(),
+                     breaks = seq(0, 0.4, 0.05))+
+  labs(title = "PCCP Opioid Overdose Calls - Sending Facility/Pick-Up Locations",
+       y = "Percent of Calls",
+       x = "Sending Facility/Pick-Up Location") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave(file = "/home2/wburr/Shawn_Chris/shawn_work/Descriptive_Stats_Plots/Pickup_Plot.png",
+       width = 10,
+       height = 6)
+
+pickup_location_plot
+```
+
+### Recieving Facility / Destination
+
+```{r}
+#| label: plot_destination
+#| warning: false
+#| message: false
+
+destination_plot <- ggplot(OpOD_PCCP,
+                           aes(x = fct_infreq(Receiving.Facility.Destination),
+                               y = (..count..)/sum(..count..))) +
+  geom_bar() +
+  geom_text(aes(label = paste0(round((..count..)/sum(..count..) , 3) * 100, "%")),
+            stat = "count",
+            vjust = -0.1) +
+  scale_y_continuous(labels = scales::percent_format(),
+                     breaks =  seq(0, 1, by = 0.1)) +
+  labs(title = "PCCP Opioid Overdose Calls - Recieving Facility/Destination",
+       y = "Percent of Calls",
+       x = "Recieving Facility/Destination") +
+  scale_x_discrete(labels = label_wrap(16)) 
+
+ggsave(file = "/home2/wburr/Shawn_Chris/shawn_work/Descriptive_Stats_Plots/destination_plot.png",
+       height = 5)
+                    
+destination_plot
+```
+
+### Age
+
+```{r}
+#| label: plot_age
+#| warning: false
+#| message: false
+
+age_plot <- ggplot(OpOD_PCCP,
+                   aes(x = Age)) +
+  geom_histogram(binwidth = 5, 
+                 aes(y = (..count..)/sum(..count..))) +
+  scale_y_continuous(labels = scales::percent_format(),
+                     limits = c(0, 0.25)) +
+  scale_x_continuous(breaks = seq(0, 100, by= 10)) +
+  labs(title = "PCCP Opioid Overdose Calls - Age Distribution",
+       y = "Percentage of Calls")
+
+ggsave(file = "/home2/wburr/Shawn_Chris/shawn_work/Descriptive_Stats_Plots/age_plot.png",
+       height = 5)
+
+age_plot
+```
+
+### Sex
+
+```{r}
+#| label: plot_gender
+#| warning: false
+#| message: false
+
+gender_plot <- ggplot(OpOD_PCCP_removedmissinggender,
+                      aes(x = Gender)) +
+  geom_bar(aes(y = (..count..)/sum(..count..))) +
+  scale_y_continuous(labels = scales::percent_format(),
+                     limits = c(0, 0.8)) +
+  scale_x_discrete(labels = c("Female", "Male")) +
+  labs(title = "PCCP Opioid Overdose Calls - gender",
+       y = "Percentage of Calls",
+       x = "Gender")
+
+ggsave(file = "/home2/wburr/Shawn_Chris/shawn_work/Descriptive_Stats_Plots/gender_plot.png",
+       height = 4,
+       width = 5)
+
+gender_plot
+```
+
+### Age and Sex
+
+```{r}
+#| label: plot_age_gender
+#| warning: false
+#| message: false
+
+age_gender_plot <- ggplot(OpOD_PCCP_removedmissinggender,
+                       aes(x = Gender,
+                           y = Age)) +
+  geom_boxplot() +
+  scale_y_continuous(breaks = seq(0, 100, by= 10)) +
+  scale_x_discrete(labels = c("Female", "Male")) +
+  labs(title = "PCCP Opioid Overdose Calls - Age and Gender")
+
+ggsave(file = "/home2/wburr/Shawn_Chris/shawn_work/Descriptive_Stats_Plots/age_gender_plot.png",
+       height = 5)
+
+age_gender_plot
+```
+
+### Calls per Year
+
+```{r}
+#| label: calls_by_year
+#| warning: false
+#| message: false
+
+yearly_call_table <- OpOD_PCCP |> group_by(year(Date.Good)) |> count()
+yearly_call_table
+
+call_year_plot_bar <- ggplot(OpOD_PCCP,
+                         aes(x = year(Date.Good))) +
+  geom_bar(stat = "count") +
+  geom_text(stat = "count",
+            aes(label = ..count..),
+            vjust = -0.1) +
+  scale_y_continuous(breaks = seq(0,300, by = 50))  +
+  labs(title = "Number of PCCP Opioid Overdose Calls per Year",
+       x = "Year",
+       y = "Number of Calls")
+
+call_year_plot_bar
+
+ggsave(file = "/home2/wburr/Shawn_Chris/shawn_work/Descriptive_Stats_Plots/call_year_plot_barplot.png",
+       height = 5)
+
+call_year_plot_line <- ggplot(OpOD_PCCP,
+                         aes(x = year(Date.Good))) +
+  geom_line(stat = "count") +
+  geom_point(stat = "count") +
+  scale_y_continuous(breaks = seq(0,300, by = 50))  +
+  labs(title = "Number of PCCP Opioid Overdose Calls per Year",
+       x = "Year",
+       y = "Number of Calls")
+
+ggsave(file = "/home2/wburr/Shawn_Chris/shawn_work/Descriptive_Stats_Plots/call_year_plot_lineplot.png",
+       height = 5)
+
+call_year_plot_line
+```
+
+### Calls per Month
+
+```{r}
+#| label: calls_by_month
+#| warning: false
+#| message: false
+
+monthly_call_table <- OpOD_PCCP |> group_by(year(Date.Good), month(Date.Good)) |> count()
+monthly_call_table
+
+monthly_call_bar <- ggplot(OpOD_PCCP,
+                            aes(month(Date.Good, label=TRUE))) +
+  geom_bar(stat = "count") +
+  facet_wrap(year(Date.Good)~., 
+             ncol=5) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.3)) +
+  labs(title = "Number of PCCP Opioid Overdose Calls per Month",
+       x = "Month",
+       y = "Number of Calls") 
+
+monthly_call_bar
+
+ggsave(file = "/home2/wburr/Shawn_Chris/shawn_work/Descriptive_Stats_Plots/monthly_call_barplot.png",
+       height = 5)
+  
+monthly_call_line <- ggplot(OpOD_PCCP,
+                            aes(month(Date.Good, label=TRUE),
+                                group = year(Date.Good),
+                                color = as.factor(Call.Year))) +
+  geom_line(stat = "count") +
+  geom_point(stat = "count") +
+  scale_y_continuous(breaks = seq(0, 30, by = 5)) +
+  labs(title = "Number of PCCP Opioid Overdose Calls per Month",
+       x = "Month",
+       y = "Number of Calls") +
+  scale_color_discrete(name = "Year")
+
+monthly_call_line
+
+ggsave(file = "/home2/wburr/Shawn_Chris/shawn_work/Descriptive_Stats_Plots/monthly_call_lineplot.png",
+       height = 5,
+       width = 7)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
